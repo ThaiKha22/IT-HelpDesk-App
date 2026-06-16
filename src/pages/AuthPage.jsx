@@ -89,7 +89,7 @@ export default function AuthPage() {
     if (account) {
       setUser({ id: `u-${Date.now()}`, name: account.name, email: account.email, phone: account.phone, role: account.role, joinDate: new Date().toISOString() });
     } else {
-      setError('Email hoặc mật khẩu không đúng. Thử: user@demo.com / 123456');
+      setError('Email hoặc mật khẩu không đúng.');
     }
     setLoading(false);
   };
@@ -262,14 +262,6 @@ export default function AuthPage() {
                   <>Đăng nhập <ArrowRight size={16} /></>
                 )}
               </button>
-
-              {/* Demo hint */}
-              <div className="demo-hint">
-                <span>Demo nhanh:</span>
-                <button type="button" className="demo-fill-btn" onClick={fillDemo}>
-                  user@demo.com / 123456
-                </button>
-              </div>
 
               <div className="auth-divider"><span>hoặc đăng nhập với</span></div>
 
