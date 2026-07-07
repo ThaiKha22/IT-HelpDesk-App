@@ -1,146 +1,360 @@
 import { create } from 'zustand';
+import { createClient } from '@supabase/supabase-js';
 
-// Auth Store
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const mapUser = (row) => row ? ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    avatar: row.avatar,
+    role: row.role,
+    phone: row.phone,
+    joinDate: row.join_date,
+}) : null;
+
+const mapTechnician = (row) => row ? ({
+    id: row.id,
+    name: row.name,
+    avatar: row.avatar,
+    rating: row.rating,
+    online: row.online,
+}) : null;
+
+const mapTicket = (row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    priority: row.priority,
+    category: row.category,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    technician: mapTechnician(row.technicians),
+    estimatedTime: row.estimated_time,
+    price: row.price,
+    rating: row.rating,
+});
+
+const mapConversation = (row) => ({
+    id: row.id,
+    ticketId: row.ticket_id,
+    ticketTitle: row.ticket_title,
+    technician: mapTechnician(row.technicians),
+    messages: (row.messages || [])
+        .sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at))
+        .map((message) => ({
+            id: message.id,
+            sender: message.sender,
+            text: message.text,
+            time: message.sent_at,
+            read: message.read,
+        })),
+    lastMessage: row.last_message,
+    unread: row.unread,
+});
+
+const mapNotification = (row) => ({
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    time: row.created_at,
+    read: row.read,
+});
+
 export const useAuthStore = create((set) => ({
-    user: {
-        id: 'u001',
-        name: 'Nguyễn Văn An',
-        email: 'an.nguyen@email.com',
-        avatar: null,
-        role: 'client',
-        phone: '0901234567',
-        joinDate: '2024-01-15',
-    },
+    user: null,
     isAuthenticated: false,
-    setUser: (user) => set({ user, isAuthenticated: true }),
-    logout: () => set({ user: null, isAuthenticated: false }),
+    loading: false,
+    error: null,
+
+    login: async (email, password) => {
+        set({ loading: true, error: null });
+
+        const { data: account, error: accountError } = await supabase
+            .from('mock_accounts')
+            .select('id, email, password, role')
+            .eq('email', email)
+            .eq('password', password)
+            .single();
+
+        if (accountError || !account) {
+            set({ user: null, isAuthenticated: false, loading: false, error: 'Email hoặc mật khẩu không đúng' });
+            return { success: false };
+        }
+
+        const { data: user, error: userError } = await supabase
+            .from('app_users')
+            .select('*')
+            .eq('id', account.id)
+            .single();
+
+        if (userError || !user) {
+            set({ user: null, isAuthenticated: false, loading: false, error: 'Không tìm thấy tài khoản' });
+            return { success: false };
+        }
+
+        const mappedUser = mapUser(user);
+
+        set({
+            user: mappedUser,
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+        });
+
+        return { success: true, user: mappedUser };
+    },
+
+    fetchUser: async (id) => {
+        set({ loading: true, error: null });
+
+        const { data, error } = await supabase
+            .from('app_users')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            set({ loading: false, error: error.message });
+            return null;
+        }
+
+        const user = mapUser(data);
+        set({ user, isAuthenticated: true, loading: false });
+        return user;
+    },
+
+    setUser: (user) => set({ user, isAuthenticated: Boolean(user) }),
+    logout: () => set({ user: null, isAuthenticated: false, error: null }),
 }));
 
-// Tickets Store
 export const useTicketStore = create((set, get) => ({
-    tickets: [
-        {
-            id: 'TK-2401',
-            title: 'Máy tính không kết nối được WiFi',
-            description: 'Laptop Dell XPS 15 không thể kết nối WiFi sau khi update Windows 11. Đã thử restart nhiều lần nhưng không được.',
-            status: 'in_progress',
-            priority: 'high',
-            category: 'network',
-            createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-            updatedAt: new Date(Date.now() - 30 * 60000).toISOString(),
-            technician: { id: 't001', name: 'Trần Kỹ Thuật', avatar: null, rating: 4.9 },
-            estimatedTime: '1-2 giờ',
-            price: 150000,
-        },
-        {
-            id: 'TK-2400',
-            title: 'Cài đặt phần mềm kế toán',
-            description: 'Cần cài đặt và cấu hình phần mềm MISA Accounting cho 3 máy tính văn phòng.',
-            status: 'completed',
-            priority: 'medium',
-            category: 'software',
-            createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-            updatedAt: new Date(Date.now() - 86400000).toISOString(),
-            technician: { id: 't002', name: 'Lê Công Nghệ', avatar: null, rating: 4.7 },
-            estimatedTime: '2-3 giờ',
-            price: 300000,
-            rating: 5,
-        },
-        {
-            id: 'TK-2399',
-            title: 'Màn hình xuất hiện sọc ngang',
-            description: 'Màn hình Samsung 27 inch bị sọc ngang màu xanh khi khởi động.',
-            status: 'pending',
-            priority: 'urgent',
-            category: 'hardware',
-            createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
-            updatedAt: new Date(Date.now() - 30 * 60000).toISOString(),
-            technician: null,
-            estimatedTime: null,
-            price: null,
-        },
-        {
-            id: 'TK-2398',
-            title: 'Laptop chạy chậm, nóng máy',
-            description: 'Laptop HP bị chậm và nóng bất thường, pin hao nhanh.',
-            status: 'cancelled',
-            priority: 'low',
-            category: 'performance',
-            createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-            updatedAt: new Date(Date.now() - 4 * 86400000).toISOString(),
-            technician: null,
-            estimatedTime: null,
-            price: null,
-        },
-    ],
-    addTicket: (ticket) => set((state) => ({
-        tickets: [{ ...ticket, id: `TK-${2402 + state.tickets.length}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, ...state.tickets]
-    })),
-    updateTicket: (id, updates) => set((state) => ({
-        tickets: state.tickets.map(t => t.id === id ? { ...t, ...updates } : t)
-    })),
-    getTicketById: (id) => get().tickets.find(t => t.id === id),
-}));
+    tickets: [],
+    loading: false,
+    error: null,
 
-// Chat Store
-export const useChatStore = create((set) => ({
-    conversations: [
-        {
-            id: 'conv-001',
-            ticketId: 'TK-2401',
-            ticketTitle: 'Máy tính không kết nối được WiFi',
-            technician: { id: 't001', name: 'Trần Kỹ Thuật', online: true },
-            messages: [
-                { id: 'm1', sender: 'technician', text: 'Xin chào! Tôi là kỹ thuật viên phụ trách ticket của bạn. Bạn có thể mô tả chi tiết vấn đề không?', time: new Date(Date.now() - 45 * 60000).toISOString(), read: true },
-                { id: 'm2', sender: 'client', text: 'Laptop Dell XPS 15 của tôi không thể kết nối WiFi sau khi update Windows 11. Icon WiFi vẫn hiện nhưng không kết nối được.', time: new Date(Date.now() - 40 * 60000).toISOString(), read: true },
-                { id: 'm3', sender: 'technician', text: 'Bạn thử mở Device Manager và kiểm tra Network Adapters xem có dấu chấm than vàng không?', time: new Date(Date.now() - 35 * 60000).toISOString(), read: true },
-                { id: 'm4', sender: 'client', text: 'Có, tôi thấy dấu chấm than vàng trên Intel Wi-Fi 6 AX201', time: new Date(Date.now() - 30 * 60000).toISOString(), read: true },
-                { id: 'm5', sender: 'technician', text: 'Rõ rồi! Driver WiFi bị lỗi sau khi update. Tôi sẽ hướng dẫn bạn rollback driver. Bạn chuẩn bị chưa?', time: new Date(Date.now() - 20 * 60000).toISOString(), read: false },
-            ],
-            lastMessage: 'Tôi sẽ hướng dẫn bạn rollback driver.',
-            unread: 1,
-        },
-        {
-            id: 'conv-002',
-            ticketId: 'TK-2400',
-            ticketTitle: 'Cài đặt phần mềm kế toán',
-            technician: { id: 't002', name: 'Lê Công Nghệ', online: false },
-            messages: [
-                { id: 'm1', sender: 'technician', text: 'Đã hoàn thành cài đặt MISA cho 3 máy. Mọi thứ hoạt động tốt nhé!', time: new Date(Date.now() - 86400000).toISOString(), read: true },
-                { id: 'm2', sender: 'client', text: 'Cảm ơn bạn rất nhiều! Rất chuyên nghiệp.', time: new Date(Date.now() - 82800000).toISOString(), read: true },
-            ],
-            lastMessage: 'Cảm ơn bạn rất nhiều!',
-            unread: 0,
-        },
-    ],
-    activeConversation: null,
-    setActiveConversation: (id) => set((state) => ({
-        activeConversation: state.conversations.find(c => c.id === id) || null,
-    })),
-    sendMessage: (convId, text) => set((state) => {
-        const newMsg = { id: `m-${Date.now()}`, sender: 'client', text, time: new Date().toISOString(), read: false };
-        return {
-            conversations: state.conversations.map(c =>
-                c.id === convId
-                    ? { ...c, messages: [...c.messages, newMsg], lastMessage: text }
-                    : c
-            ),
-            activeConversation: state.activeConversation?.id === convId
-                ? { ...state.activeConversation, messages: [...state.activeConversation.messages, newMsg] }
-                : state.activeConversation,
+    fetchTickets: async () => {
+        set({ loading: true, error: null });
+
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*, technicians(*)')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            set({ loading: false, error: error.message });
+            return [];
+        }
+
+        const tickets = data.map(mapTicket);
+        set({ tickets, loading: false });
+        return tickets;
+    },
+
+    addTicket: async (ticket) => {
+        const ticketId = ticket.id || `TK-${Date.now()}`;
+        const payload = {
+            id: ticketId,
+            title: ticket.title,
+            description: ticket.description,
+            status: ticket.status || 'pending',
+            priority: ticket.priority || 'medium',
+            category: ticket.category,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            technician_id: ticket.technicianId || null,
+            estimated_time: ticket.estimatedTime || null,
+            price: ticket.price || null,
+            rating: ticket.rating || null,
         };
-    }),
+
+        const { data, error } = await supabase
+            .from('tickets')
+            .insert(payload)
+            .select('*, technicians(*)')
+            .single();
+
+        if (error) {
+            set({ error: error.message });
+            return null;
+        }
+
+        const newTicket = mapTicket(data);
+        set((state) => ({ tickets: [newTicket, ...state.tickets], error: null }));
+        return newTicket;
+    },
+
+    updateTicket: async (id, updates) => {
+        const payload = {
+            title: updates.title,
+            description: updates.description,
+            status: updates.status,
+            priority: updates.priority,
+            category: updates.category,
+            technician_id: updates.technicianId,
+            estimated_time: updates.estimatedTime,
+            price: updates.price,
+            rating: updates.rating,
+            updated_at: new Date().toISOString(),
+        };
+
+        Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
+
+        const { data, error } = await supabase
+            .from('tickets')
+            .update(payload)
+            .eq('id', id)
+            .select('*, technicians(*)')
+            .single();
+
+        if (error) {
+            set({ error: error.message });
+            return null;
+        }
+
+        const updatedTicket = mapTicket(data);
+        set((state) => ({
+            tickets: state.tickets.map((ticket) => ticket.id === id ? updatedTicket : ticket),
+            error: null,
+        }));
+        return updatedTicket;
+    },
+
+    getTicketById: (id) => get().tickets.find((ticket) => ticket.id === id),
 }));
 
-// Notification Store
-export const useNotificationStore = create((set) => ({
-    notifications: [
-        { id: 'n1', type: 'ticket', title: 'Kỹ thuật viên đã nhận ticket TK-2399', time: new Date(Date.now() - 5 * 60000).toISOString(), read: false },
-        { id: 'n2', type: 'chat', title: 'Trần Kỹ Thuật gửi tin nhắn mới', time: new Date(Date.now() - 20 * 60000).toISOString(), read: false },
-        { id: 'n3', type: 'payment', title: 'Thanh toán TK-2400 thành công - 300,000đ', time: new Date(Date.now() - 86400000).toISOString(), read: true },
-    ],
-    markAllRead: () => set((state) => ({
-        notifications: state.notifications.map(n => ({ ...n, read: true }))
+export const useChatStore = create((set, get) => ({
+    conversations: [],
+    activeConversation: null,
+    loading: false,
+    error: null,
+
+    fetchConversations: async () => {
+        set({ loading: true, error: null });
+
+        const { data, error } = await supabase
+            .from('conversations')
+            .select('*, technicians(*), messages(*)')
+            .order('id', { ascending: true });
+
+        if (error) {
+            set({ loading: false, error: error.message });
+            return [];
+        }
+
+        const conversations = data.map(mapConversation);
+        set({ conversations, loading: false });
+        return conversations;
+    },
+
+    setActiveConversation: (id) => set((state) => ({
+        activeConversation: state.conversations.find((conversation) => conversation.id === id) || null,
     })),
-    unreadCount: 2,
+
+    sendMessage: async (convId, text) => {
+        const newMessage = {
+            id: `m-${Date.now()}`,
+            conversation_id: convId,
+            sender: 'client',
+            text,
+            sent_at: new Date().toISOString(),
+            read: false,
+        };
+
+        const { data, error } = await supabase
+            .from('messages')
+            .insert(newMessage)
+            .select('*')
+            .single();
+
+        if (error) {
+            set({ error: error.message });
+            return null;
+        }
+
+        await supabase
+            .from('conversations')
+            .update({ last_message: text })
+            .eq('id', convId);
+
+        const message = {
+            id: data.id,
+            sender: data.sender,
+            text: data.text,
+            time: data.sent_at,
+            read: data.read,
+        };
+
+        set((state) => {
+            const conversations = state.conversations.map((conversation) =>
+                conversation.id === convId
+                    ? { ...conversation, messages: [...conversation.messages, message], lastMessage: text }
+                    : conversation
+            );
+
+            return {
+                conversations,
+                activeConversation: state.activeConversation?.id === convId
+                    ? { ...state.activeConversation, messages: [...state.activeConversation.messages, message], lastMessage: text }
+                    : state.activeConversation,
+                error: null,
+            };
+        });
+
+        return message;
+    },
+
+    getConversationById: (id) => get().conversations.find((conversation) => conversation.id === id),
+}));
+
+export const useNotificationStore = create((set) => ({
+    notifications: [],
+    unreadCount: 0,
+    loading: false,
+    error: null,
+
+    fetchNotifications: async () => {
+        set({ loading: true, error: null });
+
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            set({ loading: false, error: error.message });
+            return [];
+        }
+
+        const notifications = data.map(mapNotification);
+        set({
+            notifications,
+            unreadCount: notifications.filter((notification) => !notification.read).length,
+            loading: false,
+        });
+        return notifications;
+    },
+
+    markAllRead: async () => {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('read', false);
+
+        if (error) {
+            set({ error: error.message });
+            return false;
+        }
+
+        set((state) => ({
+            notifications: state.notifications.map((notification) => ({ ...notification, read: true })),
+            unreadCount: 0,
+            error: null,
+        }));
+        return true;
+    },
 }));
