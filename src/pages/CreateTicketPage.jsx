@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, AlertCircle, Wifi, Monitor, HardDrive, TrendingUp, Shield, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Upload, AlertCircle, Wifi, Monitor, HardDrive, TrendingUp, Shield, ChevronDown, Check } from 'lucide-react';
 import { useTicketStore } from '../store';
 import './CreateTicketPage.css';
 
@@ -32,6 +32,20 @@ export default function CreateTicketPage() {
   });
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const categoryRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (categoryRef.current && !categoryRef.current.contains(e.target)) {
+        setCategoryOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedCategory = categories.find(c => c.key === form.category);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -70,20 +84,48 @@ export default function CreateTicketPage() {
         {step === 1 && (
           <div className="form-step animate-fadeInUp">
             <h2 className="step-title">Chọn danh mục vấn đề</h2>
-            <div className="category-grid">
-              {categories.map(cat => (
+            <div className="form-group">
+              <label className="form-label">Danh mục</label>
+              <div className="category-dropdown" ref={categoryRef}>
                 <button
-                  key={cat.key}
-                  className={`category-card ${form.category === cat.key ? 'selected' : ''}`}
-                  onClick={() => setForm({ ...form, category: cat.key })}
+                  type="button"
+                  className={`category-trigger ${categoryOpen ? 'open' : ''}`}
+                  onClick={() => setCategoryOpen(!categoryOpen)}
                 >
-                  <div className="category-icon"><cat.icon size={28} /></div>
-                  <div>
-                    <p className="category-label">{cat.label}</p>
-                    <p className="category-desc">{cat.desc}</p>
-                  </div>
+                  {selectedCategory ? (
+                    <span className="category-trigger-selected">
+                      <span className="category-trigger-icon"><selectedCategory.icon size={18} /></span>
+                      <span>
+                        <span className="category-trigger-label">{selectedCategory.label}</span>
+                        <span className="category-trigger-desc">{selectedCategory.desc}</span>
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="category-trigger-placeholder">Chọn danh mục vấn đề</span>
+                  )}
+                  <ChevronDown size={16} className="category-trigger-chevron" />
                 </button>
-              ))}
+
+                {categoryOpen && (
+                  <div className="category-menu animate-fadeIn">
+                    {categories.map(cat => (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        className={`category-option ${form.category === cat.key ? 'selected' : ''}`}
+                        onClick={() => { setForm({ ...form, category: cat.key }); setCategoryOpen(false); }}
+                      >
+                        <span className="category-option-icon"><cat.icon size={18} /></span>
+                        <span className="category-option-text">
+                          <span className="category-option-label">{cat.label}</span>
+                          <span className="category-option-desc">{cat.desc}</span>
+                        </span>
+                        {form.category === cat.key && <Check size={16} className="category-option-check" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="priority-section">

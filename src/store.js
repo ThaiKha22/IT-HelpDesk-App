@@ -9,6 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const mapUser = (row) => row ? ({
     id: row.id,
     name: row.name,
+    username: row.username,
     email: row.email,
     avatar: row.avatar,
     role: row.role,
@@ -71,18 +72,26 @@ export const useAuthStore = create((set) => ({
     loading: false,
     error: null,
 
-    login: async (email, password) => {
+    login: async (username, password) => {
         set({ loading: true, error: null });
 
         const { data: account, error: accountError } = await supabase
             .from('mock_accounts')
-            .select('id, email, password, role')
-            .eq('email', email)
+            .select('id, username, email, password, role')
+            .eq('username', username)
             .eq('password', password)
-            .single();
+            .maybeSingle();
 
-        if (accountError || !account) {
-            set({ user: null, isAuthenticated: false, loading: false, error: 'Email hoặc mật khẩu không đúng' });
+        if (accountError) {
+            // Lỗi thật sự (RLS chặn quyền đọc, sai tên bảng/cột, mất kết nối...)
+            console.error('[useAuthStore.login] lỗi khi truy vấn mock_accounts:', accountError);
+            set({ user: null, isAuthenticated: false, loading: false, error: 'Lỗi kết nối máy chủ. Vui lòng thử lại.' });
+            return { success: false };
+        }
+
+        if (!account) {
+            // Truy vấn thành công nhưng không có dòng nào khớp -> đúng là sai username/password
+            set({ user: null, isAuthenticated: false, loading: false, error: 'Tên người dùng hoặc mật khẩu không đúng' });
             return { success: false };
         }
 
@@ -90,10 +99,18 @@ export const useAuthStore = create((set) => ({
             .from('app_users')
             .select('*')
             .eq('id', account.id)
-            .single();
+            .maybeSingle();
 
-        if (userError || !user) {
-            set({ user: null, isAuthenticated: false, loading: false, error: 'Không tìm thấy tài khoản' });
+        if (userError) {
+            console.error('[useAuthStore.login] lỗi khi truy vấn app_users:', userError);
+            set({ user: null, isAuthenticated: false, loading: false, error: 'Lỗi khi tải thông tin tài khoản.' });
+            return { success: false };
+        }
+
+        if (!user) {
+            // account tồn tại trong mock_accounts nhưng thiếu dòng tương ứng trong app_users
+            console.error('[useAuthStore.login] không tìm thấy app_users cho id:', account.id);
+            set({ user: null, isAuthenticated: false, loading: false, error: 'Không tìm thấy hồ sơ người dùng (dữ liệu app_users bị thiếu).' });
             return { success: false };
         }
 
