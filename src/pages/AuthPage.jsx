@@ -59,7 +59,7 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const { login, register } = useAuthStore();
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
 
   const switchMode = (m) => {
@@ -72,7 +72,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
 
-    if (!loginForm.email || !loginForm.password) {
+    if (!loginForm.username || !loginForm.password) {
       setError('Vui lòng nhập đầy đủ thông tin.');
       return;
     }
@@ -80,10 +80,10 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      const result = await login(loginForm.email, loginForm.password);
+      const result = await login(loginForm.username, loginForm.password);
 
       if (!result.success) {
-        setError('Email hoặc mật khẩu không đúng.');
+        setError('Tên người dùng hoặc mật khẩu không đúng.');
       }
     } catch (error) {
       setError('Không thể kết nối máy chủ. Vui lòng thử lại.');
@@ -109,8 +109,6 @@ export default function AuthPage() {
     setUser({ id: `u-${Date.now()}`, name, email, phone, role: 'client', joinDate: new Date().toISOString() });
     setLoading(false);
   };
-
-  const fillDemo = () => setLoginForm({ email: 'user@demo.com', password: '123456' });
 
   return (
     <div className="auth-page">
@@ -176,7 +174,7 @@ export default function AuthPage() {
           <circle cx="200" cy="80" r="3" fill="rgba(0,212,255,0.2)" />
           <path d="M400 300 L320 300 L320 400 L180 400" stroke="rgba(59,130,246,0.12)" strokeWidth="1.5" />
           <circle cx="320" cy="300" r="4" fill="rgba(59,130,246,0.2)" />
-          <path d="M100 600 L100 480 L250 480 L250 380" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
+          <path d="M100 600 L100 480 L250 480 L250 380" stroke="hsla(190, 100%, 50%, 0.08)" strokeWidth="1" />
           <circle cx="250" cy="380" r="3" fill="rgba(0,212,255,0.15)" />
           <path d="M50 0 L50 120 L150 120 L150 200" stroke="rgba(139,92,246,0.1)" strokeWidth="1" />
         </svg>
@@ -218,16 +216,16 @@ export default function AuthPage() {
               )}
 
               <div className="form-field">
-                <label className="field-label">Email</label>
+                <label className="field-label">Tên đăng nhập</label>
                 <div className="input-wrap">
-                  <Mail size={16} className="input-icon" />
+                  <User size={16} className="input-icon" />
                   <input
-                    type="email"
+                    type="text"
                     className="auth-input"
-                    placeholder="your@email.com"
-                    value={loginForm.email}
-                    onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
-                    autoComplete="email"
+                    placeholder="Nhập tên đăng nhập"
+                    value={loginForm.username}
+                    onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
+                    autoComplete="username"
                   />
                 </div>
               </div>
