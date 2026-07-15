@@ -286,3 +286,16 @@
 .sidebar.closed .sidebar-user {
     justify-content: center;
 }
+
+@media (max-width: 768px) {
+    .sidebar.open,
+    .sidebar.closed {
+        width: 260px;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    }
+}

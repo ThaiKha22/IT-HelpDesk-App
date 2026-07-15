@@ -175,6 +175,30 @@
   min-height: calc(100vh - 64px);
 }
 
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .main-content.sidebar-open,
+  .main-content.sidebar-closed {
+    margin-left: 0;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    animation: fadeIn 0.2s ease;
+  }
+}
+
 #spacer {
   height: 88px;
   border-top: 1px solid var(--border);

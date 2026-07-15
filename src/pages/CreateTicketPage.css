@@ -598,3 +598,35 @@
     background: rgba(16, 185, 129, 0.15);
     color: var(--accent-green);
 }
+
+@media (max-width: 640px) {
+    .form-step {
+        padding: 20px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .priority-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        padding: 16px 20px;
+        flex-wrap: wrap;
+    }
+
+    .confirm-row {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .confirm-label {
+        width: auto;
+    }
+}

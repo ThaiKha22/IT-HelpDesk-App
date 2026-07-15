@@ -200,3 +200,30 @@
 
 .notif-content p { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
 .notif-content span { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .header-breadcrumb {
+    display: none;
+  }
+
+  .header-search-expanded {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 0;
+    height: 64px;
+    width: auto;
+    z-index: 60;
+    background: var(--bg-primary);
+  }
+
+  .notif-dropdown {
+    width: calc(100vw - 24px);
+    right: -12px;
+  }
+}
