@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -13,13 +13,21 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import './App.css';
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e) => setSidebarOpen(!e.matches);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, []);
 
   return (
     <BrowserRouter>
       <ProtectedRoute>
         <div className="app-layout">
           <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+          {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
           <div className={`main-content ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
             <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             <div className="page-content">

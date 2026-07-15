@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Phone, Video, MoreVertical, Check, CheckCheck, Paperclip, Smile } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, Check, CheckCheck, Paperclip, Smile, ArrowLeft } from 'lucide-react';
 import { useChatStore, useAuthStore } from '../store';
 import './ChatPage.css';
 
@@ -20,6 +20,7 @@ export default function ChatPage() {
     const { conversations, activeConversation, setActiveConversation, sendMessage } = useChatStore();
     const { user } = useAuthStore();
     const [input, setInput] = useState('');
+    const [mobileChatOpen, setMobileChatOpen] = useState(false);
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -46,7 +47,7 @@ export default function ChatPage() {
     };
 
     return (
-        <div className="chat-page">
+        <div className={`chat-page ${mobileChatOpen ? 'mobile-chat-open' : ''}`}>
             {/* Conversation List */}
             <div className="conv-list">
                 <div className="conv-list-header">
@@ -58,7 +59,7 @@ export default function ChatPage() {
                         <div
                             key={conv.id}
                             className={`conv-item ${activeConversation?.id === conv.id ? 'active' : ''}`}
-                            onClick={() => setActiveConversation(conv.id)}
+                            onClick={() => { setActiveConversation(conv.id); setMobileChatOpen(true); }}
                         >
                             <div className="conv-avatar">
                                 {conv.technician.name.charAt(0)}
@@ -88,6 +89,9 @@ export default function ChatPage() {
                     {/* Chat Header */}
                     <div className="chat-header">
                         <div className="chat-header-info">
+                            <button className="chat-back-btn" onClick={() => setMobileChatOpen(false)}>
+                                <ArrowLeft size={18} />
+                            </button>
                             <div className="chat-avatar">
                                 {activeConversation.technician.name.charAt(0)}
                                 {activeConversation.technician.online && <span className="online-dot" />}

@@ -310,3 +310,29 @@
 .empty-state p {
     font-size: 13px;
 }
+
+@media (max-width: 640px) {
+    .tickets-header {
+        flex-wrap: wrap;
+    }
+
+    .filter-tabs {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .filter-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .search-box {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .ticket-card {
+        padding: 16px;
+    }
+}
